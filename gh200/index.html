@@ -193,6 +193,34 @@ tr:last-child td{border-bottom:0}
 .btn.no{background:var(--bad-soft);border-color:rgba(255,138,122,.3);color:var(--bad)}
 .btn.yes{background:var(--ok-soft);border-color:rgba(74,222,128,.3);color:var(--ok)}
 
+/* rapid mode */
+.modeseg{margin-bottom:12px}
+.rq{padding:20px 18px;border-radius:24px;margin-bottom:12px}
+.rq .meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11.5px;color:var(--mute);margin-bottom:10px}
+.rq .q{font-size:clamp(19px,4.6vw,23px);font-weight:700;line-height:1.35;letter-spacing:-.01em;margin:0 0 16px;text-wrap:pretty}
+.rin{display:flex;gap:8px}
+.rin input{flex:1;min-width:0;background:rgba(0,0,0,.32);border:1px solid var(--edge2);border-radius:14px;color:var(--ink);padding:0 14px;font-family:var(--mono);font-size:16px;min-height:52px}
+.rin input:focus{outline:none;border-color:var(--acc-edge)}
+.rin .btn{flex:0 0 auto;padding:0 18px;min-height:52px}
+.rchoices{display:grid;gap:8px}
+.rchoices .opt{grid-template-columns:1fr;font-family:var(--mono);font-size:14.5px;min-height:52px;align-items:center}
+.rres{margin-top:14px;padding:14px 16px;border-radius:16px;animation:fade .3s var(--ease) both}
+.rres.ok{background:var(--ok-soft);border:1px solid rgba(74,222,128,.3)}
+.rres.no{background:var(--bad-soft);border:1px solid rgba(255,138,122,.3)}
+.rres .v{font-weight:800;font-size:15px}
+.rres.ok .v{color:var(--ok)}.rres.no .v{color:var(--bad)}
+.rres .ans{margin-top:6px;font-size:14px;color:var(--ink2)}
+.rres .ans code{font-size:14px}
+.rres .why{margin-top:6px;font-size:14px;line-height:1.55;color:var(--ink2)}
+.rres .you{font-size:12.5px;color:var(--mute);margin-top:4px}
+.rbar{display:flex;gap:8px;margin-top:12px}
+.streak{font-family:var(--mono);color:var(--warn)}
+.rsum{padding:22px;border-radius:24px;text-align:center}
+.rsum .big{font-family:var(--mono);font-size:52px;font-weight:600;letter-spacing:-.04em}
+.miss{text-align:left;margin-top:14px;display:grid;gap:8px}
+.miss div{padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--edge);font-size:13.5px;color:var(--ink2);line-height:1.45}
+.miss b{color:var(--ink)}
+
 /* chips & filters */
 .chips{display:flex;gap:6px;overflow-x:auto;padding:2px 1px 4px;scrollbar-width:none;margin-bottom:12px}
 .chips::-webkit-scrollbar{display:none}
@@ -230,7 +258,7 @@ footer button{text-decoration:underline;color:var(--ink2);font-size:12px}
 <nav class="dock glass" id="dock" aria-label="Navegação">
   <button data-go="#/" aria-label="Início"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Início</button>
   <button data-go="#/exam" aria-label="Simulado"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9 2h6"/></svg>Simulado</button>
-  <button data-go="#/cards" aria-label="Flashcards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h11a3 3 0 0 1 3 3v11"/></svg>Cards</button>
+  <button data-go="#/rapid" data-alt="#/cards" aria-label="Modo rápido e flashcards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>Rápido</button>
   <button data-go="#/review" aria-label="Revisar erros"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Erros</button>
 </nav>
 <div class="toast glass" id="toast"></div>
@@ -241,6 +269,7 @@ const {modules, exam} = window.GH200;
 const MOD = Object.fromEntries(modules.map(m => [m.id, m]));
 const LES = {}; modules.forEach(m => m.lessons.forEach((l,i) => LES[l.id] = {...l, mod:m.id, idx:i}));
 const Q = {}; modules.forEach(m => { m.quiz.forEach(q => Q[q.id] = {...q, mod:m.id, kind:"quiz"}); m.lessons.forEach(l => l.quick.forEach(q => Q[q.id] = {...q, mod:m.id, lesson:l.id, kind:"quick"})); });
+const RAPID = (window.GH200.rapid || []);
 const CARDS = []; modules.forEach(m => m.flashcards.forEach((c,i) => CARDS.push({...c, id:`${m.id}c${i}`, mod:m.id})));
 
 // ---------- state ----------
@@ -289,7 +318,7 @@ function modStats(mid){
   return {read, total:m.lessons.length, seen:seen.length, ok:ok.length, qn:qs.length};
 }
 function setHeader(t, s, back){ document.getElementById("ht").textContent = t; document.getElementById("hs").textContent = s; document.getElementById("back").hidden = !back; document.getElementById("logo").style.display = back ? "none" : ""; }
-function setDock(h){ document.querySelectorAll(".dock button").forEach(b => b.setAttribute("aria-current", h.startsWith(b.dataset.go) && (b.dataset.go!=="#/" || h==="#/" || h.startsWith("#/m/") || h.startsWith("#/l/")))); }
+function setDock(h){ document.querySelectorAll(".dock button").forEach(b => b.setAttribute("aria-current", (h.startsWith(b.dataset.go) || (b.dataset.alt && h.startsWith(b.dataset.alt))) && (b.dataset.go!=="#/" || h==="#/" || h.startsWith("#/m/") || h.startsWith("#/l/")))); }
 function headerCount(){
   const d = daysLeft(); const all = Object.keys(S.ans).length; const ok = Object.values(S.ans).filter(a=>a.last).length;
   document.getElementById("count").innerHTML = d > 0 ? `<b>${d}</b> ${d===1?"dia":"dias"}<br>${pct(ok,all)}% acerto` : (d===0 ? `<b>Hoje!</b><br>boa prova` : `${pct(ok,all)}% acerto`);
@@ -353,7 +382,7 @@ function viewHome(){
     <div class="actions">
       ${next?`<a class="act panel primary" href="#/l/${next.id}"><i>CONTINUAR</i><b>${tl(next.title)}</b><span>${esc(MOD[next.mod].title)} · ${next.minutes} min</span></a>`:`<a class="act panel primary" href="#/exam"><i>TUDO LIDO</i><b>Hora do simulado</b><span>Treine no formato da prova</span></a>`}
       <a class="act panel" href="#/exam"><i>SIMULADO</i><b>Prova treino</b><span>${lastExam?`Último: ${lastExam.score}/1000`:"Questões com o peso de cada domínio"}</span></a>
-      <a class="act panel" href="#/cards"><i>FLASHCARDS</i><b>${CARDS.length} cards</b><span>Revisão rápida, com repetição espaçada</span></a>
+      <a class="act panel" href="#/rapid"><i>⚡ MODO RÁPIDO</i><b>${RAPID.length||"…"} perguntas curtas</b><span>Para o ônibus, o café, o tempo livre. Toque ou digite a resposta</span></a>
       <a class="act panel" href="#/review"><i>ERROS</i><b>${wrong} para revisar</b><span>Refaça só o que você errou</span></a>
     </div>
     <div class="sect"><h2>Módulos da prova</h2><span>peso oficial</span></div>
@@ -492,6 +521,82 @@ function resultView(title, ok, n, by, again, gab=null, scoreIn){
   }
 }
 let cardFilter = "all";
+const norm = t => String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[`'"“”‘’.,;:!?()\[\]{}]/g,"").replace(/\s+/g,"");
+function rapidCheck(item, typed){ const t = norm(typed); if (!t) return false; return [item.a, ...(item.accept||[])].some(v => norm(v) === t); }
+let rapidCfg = LS.get("gh200.rapid", {input:"tap", n:10, mod:"all", wrongOnly:false});
+function modeSeg(active){ return `<div class="seg modeseg" id="modeseg"><button aria-pressed="${active==="rapid"}" data-mode="#/rapid">⚡ Modo rápido</button><button aria-pressed="${active==="cards"}" data-mode="#/cards">Flashcards</button></div>`; }
+function bindModeSeg(){ const m = document.getElementById("modeseg"); if (m) m.onclick = e => { const b = e.target.closest("[data-mode]"); if (b) go(b.dataset.mode); }; }
+function viewRapidSetup(){
+  setHeader("Modo rápido", "Perguntas curtas para o tempo livre", false);
+  if (!RAPID.length) { app.innerHTML = `<div class="view">${modeSeg("rapid")}<div class="empty">As perguntas rápidas ainda estão sendo preparadas. Volte em alguns minutos.</div></div>`; bindModeSeg(); return; }
+  const st = S.rapid || {}; const seen = RAPID.filter(x=>st[x.id]).length, ok = RAPID.filter(x=>st[x.id]&&st[x.id].last).length, wrong = RAPID.filter(x=>st[x.id]&&!st[x.id].last).length;
+  app.innerHTML = `<div class="view">${modeSeg("rapid")}
+    <section class="setup glass">
+      <div class="bars" style="grid-template-columns:auto 1fr auto"><span>Respondidas</span><div class="bar"><i style="width:${pct(seen,RAPID.length)}%"></i></div><em>${seen}/${RAPID.length}</em><span>Acerto</span><div class="bar q"><i style="width:${pct(ok,seen)}%"></i></div><em>${pct(ok,seen)}%</em></div>
+      <div><label>Como responder</label><div class="seg" id="ri"><button aria-pressed="${rapidCfg.input==="tap"}" data-i="tap">Tocar (4 opções)</button><button aria-pressed="${rapidCfg.input==="type"}" data-i="type">Digitar</button></div></div>
+      <div><label>Rodada</label><div class="seg" id="rn">${[10,20,30].map(n=>`<button aria-pressed="${rapidCfg.n===n}" data-n="${n}">${n}</button>`).join("")}</div></div>
+      <div><label>Assunto</label><div class="chips" id="rm" style="margin:6px 0 0"><button class="chip" aria-pressed="${rapidCfg.mod==="all"}" data-m="all">Todos</button>${modules.map((m,i)=>`<button class="chip" aria-pressed="${rapidCfg.mod===m.id}" data-m="${m.id}">D${i+1} · ${esc(m.title)}</button>`).join("")}</div></div>
+      <div class="row2" style="margin:0"><button class="btn pri" id="rgo">Começar ⚡</button><button class="btn" id="rgw" ${wrong?"":"disabled"}>Só as que errei · ${wrong}</button></div>
+      <p style="margin:0;color:var(--mute);font-size:12.5px;line-height:1.5">Uma pergunta por vez, com resposta curta. No modo digitar, maiúsculas, acentos, crases e pontuação não contam. As que você erra voltam com mais frequência.</p>
+    </section></div>`;
+  bindModeSeg();
+  const setc = (k,v) => { rapidCfg[k]=v; LS.set("gh200.rapid", rapidCfg); viewRapidSetup(); };
+  app.querySelector("#ri").onclick = e => { const b=e.target.closest("[data-i]"); if (b) setc("input", b.dataset.i); };
+  app.querySelector("#rn").onclick = e => { const b=e.target.closest("[data-n]"); if (b) setc("n", +b.dataset.n); };
+  app.querySelector("#rm").onclick = e => { const b=e.target.closest("[data-m]"); if (b) setc("mod", b.dataset.m); };
+  document.getElementById("rgo").onclick = () => { rapidCfg.wrongOnly=false; LS.set("gh200.rapid", rapidCfg); go("#/rapid/run"); };
+  document.getElementById("rgw").onclick = () => { rapidCfg.wrongOnly=true; LS.set("gh200.rapid", rapidCfg); go("#/rapid/run"); };
+}
+function viewRapidRun(){
+  S.rapid = S.rapid || {};
+  let pool = RAPID.filter(x => rapidCfg.mod==="all" || x.mod===rapidCfg.mod);
+  if (rapidCfg.wrongOnly) pool = pool.filter(x => S.rapid[x.id] && !S.rapid[x.id].last);
+  // priority: wrong first, then unseen, then oldest seen
+  const pr = x => { const a = S.rapid[x.id]; if (!a) return 1; if (!a.last) return 0; return 2 + (a.t||0)/1e13; };
+  pool = shuffle(pool).sort((a,b) => pr(a)-pr(b)).slice(0, rapidCfg.n);
+  if (!pool.length) return go("#/rapid");
+  let i = 0, ok = 0, streak = 0, best = 0; const missed = [];
+  setHeader("Modo rápido", `${pool.length} perguntas · ${rapidCfg.input==="tap"?"tocar":"digitar"}`, true);
+  const draw = () => {
+    if (i >= pool.length) return summary();
+    const it = pool[i]; const mi = modules.findIndex(m=>m.id===it.mod);
+    const opts = shuffle([it.a, ...(it.choices||[]).slice(0,3)]);
+    app.innerHTML = `<div class="view"><div class="qprog"><i style="width:${pct(i,pool.length)}%"></i></div>
+      <section class="rq glass"><div class="meta"><span>D${mi+1} · ${i+1}/${pool.length}</span><span class="streak">${streak>=2?`🔥 ${streak} seguidas`:`${ok} ✓`}</span></div>
+      <p class="q">${md(it.q)}</p>
+      ${rapidCfg.input==="type" ? `<form class="rin" id="rf" autocomplete="off"><input id="rt" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" placeholder="sua resposta…"><button class="btn pri" type="submit">OK</button></form><button class="btn" id="rskip" style="margin-top:8px;min-height:40px;font-size:13px">Não sei, mostrar resposta</button>`
+        : `<div class="rchoices">${opts.map(o=>`<button class="opt" data-c="${esc(o)}"><span>${md("`"+o.replace(/`/g,"")+"`")}</span></button>`).join("")}</div>`}
+      <div id="rres"></div></section></div>`;
+    const finish = (good, given) => {
+      const prev = S.rapid[it.id] || {n:0, ok:0}; prev.n++; if (good) prev.ok++; prev.last = good; prev.t = Date.now(); S.rapid[it.id] = prev; save();
+      if (good) { ok++; streak++; best = Math.max(best, streak); } else { streak = 0; missed.push({it, given}); }
+      if (navigator.vibrate) navigator.vibrate(good?8:[10,40,10]);
+      if (rapidCfg.input==="tap") app.querySelectorAll(".rchoices .opt").forEach(b => { b.disabled = true; const v = b.dataset.c; if (v===it.a) b.classList.add("right"); else if (v===given) b.classList.add("wrong"); });
+      else { const f = document.getElementById("rf"); if (f) f.querySelectorAll("input,button").forEach(x=>x.disabled=true); const sk = document.getElementById("rskip"); if (sk) sk.remove(); }
+      document.getElementById("rres").innerHTML = `<div class="rres ${good?"ok":"no"}"><div class="v">${good?"✓ Certo!":"✗ Errado"}</div>
+        ${!good && given && rapidCfg.input==="type" ? `<div class="you">Você digitou: <code>${esc(given)}</code></div>`:""}
+        <div class="ans">Resposta: <code>${esc(it.a)}</code></div><div class="why">${md(it.why)}${it.ref?` <a href="${esc(it.ref)}" target="_blank" rel="noopener">docs ↗</a>`:""}</div></div>
+        <div class="rbar"><button class="btn pri" id="rnext">${i+1<pool.length?"Próxima →":"Ver resultado"}</button></div>`;
+      const nx = document.getElementById("rnext"); nx.onclick = () => { i++; draw(); window.scrollTo({top:0}); }; nx.focus({preventScroll:true});
+    };
+    if (rapidCfg.input==="type") {
+      const inp = document.getElementById("rt"); setTimeout(()=>inp.focus(), 50);
+      document.getElementById("rf").onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (!v) return; finish(rapidCheck(it, v), v); };
+      document.getElementById("rskip").onclick = () => finish(false, "");
+    } else {
+      app.querySelector(".rchoices").onclick = e => { const b = e.target.closest("[data-c]"); if (!b || b.disabled) return; finish(b.dataset.c===it.a, b.dataset.c); };
+    }
+  };
+  const summary = () => {
+    setHeader("Rodada concluída", `${ok}/${pool.length} certas`, true);
+    app.innerHTML = `<div class="view"><section class="rsum glass"><div class="big">${ok}<small style="font-size:20px;color:var(--mute)">/${pool.length}</small></div>
+      <div style="color:var(--ink2);margin-top:4px">${pct(ok,pool.length)}% de acerto${best>=3?` · melhor sequência: ${best} 🔥`:""}</div>
+      ${missed.length?`<div class="miss">${missed.map(m=>`<div><b>${md(m.it.q)}</b><br>Resposta: <code>${esc(m.it.a)}</code></div>`).join("")}</div>`:`<p style="color:var(--ok);font-weight:700;margin:14px 0 0">Gabaritou! 🎯</p>`}
+    </section><div class="row2"><button class="btn pri" id="ragain">Outra rodada ⚡</button><a class="btn" href="#/rapid">Ajustes</a></div></div>`;
+    document.getElementById("ragain").onclick = () => viewRapidRun();
+  };
+  draw();
+}
 function viewCards(mid){
   if (mid) cardFilter = mid;
   setHeader("Flashcards", "Toque no card para virar", !!mid);
@@ -501,7 +606,7 @@ function viewCards(mid){
   const mastered = deck.filter(c => (S.box[c.id] ?? 0) >= 2).length;
   let card = pick();
   const draw = () => {
-    app.innerHTML = `<div class="view">
+    app.innerHTML = `<div class="view">${modeSeg("cards")}
       <div class="chips"><button class="chip" aria-pressed="${cardFilter==="all"}" data-f="all">Todos · ${CARDS.length}</button>${modules.map((m,i)=>`<button class="chip" aria-pressed="${cardFilter===m.id}" data-f="${m.id}">D${i+1} · ${esc(m.title)}</button>`).join("")}</div>
       <div class="bars" style="grid-template-columns:auto 1fr auto;margin-bottom:6px"><span>Dominados</span><div class="bar q"><i style="width:${pct(mastered,deck.length)}%"></i></div><em>${mastered}/${deck.length}</em></div>
       <div class="fc-wrap"><div class="fc" id="fc">
@@ -510,6 +615,7 @@ function viewCards(mid){
       </div></div>
       <div class="leit"><button class="btn no" data-k="0">Não sabia</button><button class="btn yes" data-k="1">Sabia</button></div>
     </div>`;
+    bindModeSeg();
     const fc = document.getElementById("fc"); fc.onclick = () => fc.classList.toggle("flip");
     app.querySelector(".chips").onclick = e => { const b = e.target.closest("[data-f]"); if (!b) return; cardFilter = b.dataset.f; viewCards(); };
     app.querySelector(".leit").onclick = e => { const b = e.target.closest("[data-k]"); if (!b) return; const cur = S.box[card.id] ?? 0; S.box[card.id] = b.dataset.k==="1" ? Math.min(3, cur+1) : 0; save(); card = pick(); draw(); };
@@ -529,6 +635,8 @@ function route(){
   else if ((m = h.match(/^#\/quiz\/(\w+)/))) viewQuiz(m[1]);
   else if (h === "#/exam/run") viewExamRun();
   else if (h.startsWith("#/exam")) viewExamSetup();
+  else if (h === "#/rapid/run") viewRapidRun();
+  else if (h.startsWith("#/rapid")) viewRapidSetup();
   else if ((m = h.match(/^#\/cards(?:\/(\w+))?/))) viewCards(m[1]);
   else if (h.startsWith("#/review")) viewReview();
   else viewHome();
