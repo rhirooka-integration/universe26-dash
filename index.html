@@ -268,7 +268,8 @@ footer button{text-decoration:underline;color:var(--ink2);font-size:12px}
     <main id="list"></main>
     <footer>
       Dados do catálogo oficial do GitHub Universe 2026 (162 sessões). Horários em PDT. Confira mudanças no app oficial.<br>
-      Seus checks e salvos ficam guardados neste aparelho. · <button id="reset">Restaurar roteiro sugerido</button>
+      <a href="gh200/">GH-200 Lab: estudo para a certificação de Actions →</a><br>
+  Seus checks e salvos ficam guardados neste aparelho. · <button id="reset">Restaurar roteiro sugerido</button>
     </footer>
   </div>
   <aside class="sheet" id="sheet" role="dialog" aria-labelledby="shTitle"></aside>
@@ -287,6 +288,7 @@ const DAYS = [
   {k:"2026-10-27", l:"Ter 27", full:"Terça, 27 de outubro", note:"véspera"},
   {k:"2026-10-28", l:"Qua 28", full:"Quarta, 28 de outubro", note:"Dia 1 · portas 7:30"},
   {k:"2026-10-29", l:"Qui 29", full:"Quinta, 29 de outubro", note:"Dia 2 · portas 8:00 · campus fecha 15:00"},
+  {k:"2026-10-30", l:"Sex 30", full:"Sexta, 30 de outubro", note:"Day of Learning (ingresso à parte) + GH-200"},
 ];
 const VIEWS = [{k:"mine",l:"Meu roteiro"},{k:"all",l:"Todas"},{k:"later",l:"Assistir depois"}];
 const TYPES = [
@@ -300,6 +302,7 @@ const TYPE_PT = Object.fromEntries(TYPES);
 const LS = {get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}, set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const defaultSaved = sessions.filter(s => s.pick === "main").map(s => s.id);
 let saved = new Set(LS.get("u26.saved", defaultSaved));
+if (!LS.get("u26.fri", false)) { saved.add(900); saved.add(901); LS.set("u26.fri", true); }
 let done = new Set(LS.get("u26.done", []));
 let ui = Object.assign({day: defaultDay(), view:"mine", types:[], q:""}, LS.get("u26.ui", {}));
 ui.q = "";
@@ -384,7 +387,9 @@ function cardHTML(s, i=0){
   if (s.popular) tags.push(`<span class="tag pop">Lota · chegue 20 min antes</span>`);
   if (s.recorded && s.pick!=="later") tags.push(`<span class="tag rec">Gravada</span>`);
   if (conf.length) tags.push(`<span class="tag conf">Conflito</span>`);
-  if (s.rsvpKind==="curated") tags.push(`<span class="tag conf">Inscrição + aprovação</span>`);
+  if (s.id===900) tags.push(`<span class="tag conf">Ingresso separado</span>`);
+  else if (s.id===901) tags.push(`<span class="tag pop">Agendar + voucher</span>`);
+  else if (s.rsvpKind==="curated") tags.push(`<span class="tag conf">Inscrição + aprovação</span>`);
   else if (s.rsvpKind==="required") tags.push(`<span class="tag pop">Inscrição obrigatória</span>`);
   const alts = sameTime(s);
   const altLine = ui.view==="mine" && alts.length ? `<div class="alt">+${alts.length} no mesmo horário${alts.some(a=>a.pick==="planb")?` · <b>Plano B: ${esc(alts.find(a=>a.pick==="planb").title.slice(0,48))}${alts.find(a=>a.pick==="planb").title.length>48?"…":""}</b>`:""}</div>` : "";
@@ -395,7 +400,7 @@ function cardHTML(s, i=0){
       <div class="loc">${esc(s.loc)}</div>
       ${s.speakers.length?`<div class="who"><div class="faces">${s.speakers.slice(0,4).map(i=>face(i)).join("")}</div><div class="names">${esc(shortNames(s.speakers))}</div></div>`:""}
       ${altLine}
-      ${s.rsvp?`<a class="rsvpchip" href="${esc(s.rsvp)}" target="_blank" rel="noopener">${s.rsvpKind==="curated"?"Inscrever-se (precisa aprovação)":"Fazer inscrição"} ↗</a>`:""}
+      ${s.rsvp?`<a class="rsvpchip" href="${esc(s.rsvp)}" target="_blank" rel="noopener">${s.id===901?"Agendar prova":s.rsvpKind==="curated"?"Inscrever-se (precisa aprovação)":"Fazer inscrição"} ↗</a>`:""}${s.study?` <a class="rsvpchip" style="background:rgba(126,224,255,.18);color:#7ee0ff;box-shadow:none" href="${esc(s.study)}">Estudar no GH-200 Lab →</a>`:""}
     </div>
     <div class="acts">
       <button class="ib sv${sv?" on":""}" data-save="${s.id}" aria-label="${sv?"Remover do roteiro":"Salvar no roteiro"}" aria-pressed="${sv}">${sv?IC.saveOn:IC.save}</button>
@@ -473,7 +478,7 @@ function renderSheet(){
   if (tab==="about") {
     body += s.why ? `<div class="why"><b>${s.pick==="planb"?"Plano B":s.pick==="later"?"Assistir depois":"Por que ir"}</b>${esc(s.why)}</div>` : "";
     if (conf.length) body += `<div class="why bad"><b>Conflito no seu roteiro</b>${conf.map(c=>`${hm(c.start)} · ${esc(c.title)}`).join("<br>")}</div>`;
-    if (s.rsvpKind) body += `<div class="why bad"><b>${s.rsvpKind==="curated"?"Precisa se inscrever e ser aprovado":"Precisa se inscrever antes"}</b>${s.rsvpKind==="curated"?"Os organizadores escolhem quem entra (\"curated\" ou \"subject to confirmation\"). Inscreva-se o quanto antes e só vá se receber a confirmação por email.":"Sem inscrição prévia você pode ser barrado na porta. Faça a inscrição e guarde o email de confirmação."}${s.rsvp?`<a class="btn rsvp" style="margin-top:10px" href="${esc(s.rsvp)}" target="_blank" rel="noopener">Abrir página de inscrição ↗</a>`:""}</div>`;
+    if (s.rsvpKind) body += `<div class="why bad"><b>${s.id===900?"Precisa de ingresso separado":s.id===901?"Precisa agendar a prova":s.rsvpKind==="curated"?"Precisa se inscrever e ser aprovado":"Precisa se inscrever antes"}</b>${s.id===900?"O passe do Universe não dá acesso ao Day of Learning. Confira no seu email se você comprou o add-on.":s.id===901?"A certificação não vem no passe: é preciso comprar um voucher (vendido como add-on do Universe) ou pagar a prova. Agende pelo Microsoft Learn.":s.rsvpKind==="curated"?"Os organizadores escolhem quem entra (\"curated\" ou \"subject to confirmation\"). Inscreva-se o quanto antes e só vá se receber a confirmação por email.":"Sem inscrição prévia você pode ser barrado na porta. Faça a inscrição e guarde o email de confirmação."}${s.rsvp?`<a class="btn rsvp" style="margin-top:10px" href="${esc(s.rsvp)}" target="_blank" rel="noopener">${s.id===901?"Agendar a prova (Microsoft Learn) ↗":"Abrir página de inscrição ↗"}</a>`:""}${s.study?`<a class="btn" style="margin-top:8px;text-decoration:none" href="${esc(s.study)}">Abrir o GH-200 Lab (estudo) →</a>`:""}</div>`;
     if (s.brief) body += `<div><span class="lbl">Resumo</span><p class="brief">${esc(s.brief)}</p></div>`;
     body += `<details ${s.brief?"":"open"}><summary>Descrição original (EN)</summary><p class="desc">${esc(s.desc)}</p></details>
 <dl class="kv"><dt>Formato</dt><dd>${esc(s.type)}${s.recorded?" · gravada":" · <b>não gravada</b>"}</dd>
