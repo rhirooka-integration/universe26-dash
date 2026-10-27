@@ -140,6 +140,7 @@ main{padding:4px 0 140px}
 .tag.pop{background:var(--warn-soft);color:var(--warn)}
 .tag.rec{background:rgba(255,255,255,.05);color:var(--mute)}
 .tag.conf{background:var(--warn-soft);color:var(--warn);border-color:rgba(255,138,122,.3)}
+.tag.ok{background:var(--ok-soft);color:var(--ok);border-color:rgba(74,222,128,.25)}
 .tag.liveb{background:var(--warn);color:#1a0300}
 .ttl{font-size:clamp(15px,1.9vw,16.5px);font-weight:680;line-height:1.3;margin:0;text-wrap:pretty;letter-spacing:-.005em}
 .loc{font-size:12.5px;color:var(--mute);margin-top:4px}
@@ -288,7 +289,7 @@ const DAYS = [
   {k:"2026-10-27", l:"Ter 27", full:"Terça, 27 de outubro", note:"véspera"},
   {k:"2026-10-28", l:"Qua 28", full:"Quarta, 28 de outubro", note:"Dia 1 · portas 7:30"},
   {k:"2026-10-29", l:"Qui 29", full:"Quinta, 29 de outubro", note:"Dia 2 · portas 8:00 · campus fecha 15:00"},
-  {k:"2026-10-30", l:"Sex 30", full:"Sexta, 30 de outubro", note:"Day of Learning (ingresso à parte) + GH-200"},
+  {k:"2026-10-30", l:"Sex 30", full:"Sexta, 30 de outubro", note:"Day of Learning na GitHub HQ (ingresso ✓) · 8h–16h"},
 ];
 const VIEWS = [{k:"mine",l:"Meu roteiro"},{k:"all",l:"Todas"},{k:"later",l:"Assistir depois"}];
 const TYPES = [
@@ -302,7 +303,7 @@ const TYPE_PT = Object.fromEntries(TYPES);
 const LS = {get:(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}, set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const defaultSaved = sessions.filter(s => s.pick === "main").map(s => s.id);
 let saved = new Set(LS.get("u26.saved", defaultSaved));
-if (!LS.get("u26.fri", false)) { saved.add(900); saved.add(901); LS.set("u26.fri", true); }
+if (!LS.get("u26.fri2", false)) { [0,52,900,901,902,903,904,905,906,907,908,909].forEach(i=>saved.add(i)); LS.set("u26.fri2", true); }
 let done = new Set(LS.get("u26.done", []));
 let ui = Object.assign({day: defaultDay(), view:"mine", types:[], q:""}, LS.get("u26.ui", {}));
 ui.q = "";
@@ -387,8 +388,9 @@ function cardHTML(s, i=0){
   if (s.popular) tags.push(`<span class="tag pop">Lota · chegue 20 min antes</span>`);
   if (s.recorded && s.pick!=="later") tags.push(`<span class="tag rec">Gravada</span>`);
   if (conf.length) tags.push(`<span class="tag conf">Conflito</span>`);
-  if (s.id===900) tags.push(`<span class="tag conf">Ingresso separado</span>`);
-  else if (s.id===901) tags.push(`<span class="tag pop">Agendar + voucher</span>`);
+  if (s.status) tags.push(`<span class="tag ${/aguardando|precisa|Sem voucher|bate/i.test(s.status)?"pop":"ok"}">${esc(s.status)}</span>`);
+  if (s.id===901) tags.push(`<span class="tag pop">Agendar</span>`);
+  else if (s.day==="2026-10-30") {}
   else if (s.rsvpKind==="curated") tags.push(`<span class="tag conf">Inscrição + aprovação</span>`);
   else if (s.rsvpKind==="required") tags.push(`<span class="tag pop">Inscrição obrigatória</span>`);
   const alts = sameTime(s);
@@ -478,7 +480,8 @@ function renderSheet(){
   if (tab==="about") {
     body += s.why ? `<div class="why"><b>${s.pick==="planb"?"Plano B":s.pick==="later"?"Assistir depois":"Por que ir"}</b>${esc(s.why)}</div>` : "";
     if (conf.length) body += `<div class="why bad"><b>Conflito no seu roteiro</b>${conf.map(c=>`${hm(c.start)} · ${esc(c.title)}`).join("<br>")}</div>`;
-    if (s.rsvpKind) body += `<div class="why bad"><b>${s.id===900?"Precisa de ingresso separado":s.id===901?"Precisa agendar a prova":s.rsvpKind==="curated"?"Precisa se inscrever e ser aprovado":"Precisa se inscrever antes"}</b>${s.id===900?"O passe do Universe não dá acesso ao Day of Learning. Confira no seu email se você comprou o add-on.":s.id===901?"A certificação não vem no passe: é preciso comprar um voucher (vendido como add-on do Universe) ou pagar a prova. Agende pelo Microsoft Learn.":s.rsvpKind==="curated"?"Os organizadores escolhem quem entra (\"curated\" ou \"subject to confirmation\"). Inscreva-se o quanto antes e só vá se receber a confirmação por email.":"Sem inscrição prévia você pode ser barrado na porta. Faça a inscrição e guarde o email de confirmação."}${s.rsvp?`<a class="btn rsvp" style="margin-top:10px" href="${esc(s.rsvp)}" target="_blank" rel="noopener">${s.id===901?"Agendar a prova (Microsoft Learn) ↗":"Abrir página de inscrição ↗"}</a>`:""}${s.study?`<a class="btn" style="margin-top:8px;text-decoration:none" href="${esc(s.study)}">Abrir o GH-200 Lab (estudo) →</a>`:""}</div>`;
+    if (s.status) body += `<div class="why" style="background:${/aguardando|precisa|Sem voucher|bate/i.test(s.status)?"var(--warn-soft)":"var(--ok-soft)"};border-color:transparent"><b style="color:${/aguardando|precisa|Sem voucher|bate/i.test(s.status)?"var(--acc)":"var(--ok)"}">Do seu email</b>${esc(s.status)}</div>`;
+    if (s.rsvpKind && s.day!=="2026-10-30" || s.id===901) body += `<div class="why bad"><b>${s.id===900?"Precisa de ingresso separado":s.id===901?"Precisa agendar a prova":s.rsvpKind==="curated"?"Precisa se inscrever e ser aprovado":"Precisa se inscrever antes"}</b>${s.id===900?"O passe do Universe não dá acesso ao Day of Learning. Confira no seu email se você comprou o add-on.":s.id===901?"A certificação não vem no passe: é preciso comprar um voucher (vendido como add-on do Universe) ou pagar a prova. Agende pelo Microsoft Learn.":s.rsvpKind==="curated"?"Os organizadores escolhem quem entra (\"curated\" ou \"subject to confirmation\"). Inscreva-se o quanto antes e só vá se receber a confirmação por email.":"Sem inscrição prévia você pode ser barrado na porta. Faça a inscrição e guarde o email de confirmação."}${s.rsvp?`<a class="btn rsvp" style="margin-top:10px" href="${esc(s.rsvp)}" target="_blank" rel="noopener">${s.id===901?"Agendar a prova (Microsoft Learn) ↗":"Abrir página de inscrição ↗"}</a>`:""}${s.study?`<a class="btn" style="margin-top:8px;text-decoration:none" href="${esc(s.study)}">Abrir o GH-200 Lab (estudo) →</a>`:""}</div>`;
     if (s.brief) body += `<div><span class="lbl">Resumo</span><p class="brief">${esc(s.brief)}</p></div>`;
     body += `<details ${s.brief?"":"open"}><summary>Descrição original (EN)</summary><p class="desc">${esc(s.desc)}</p></details>
 <dl class="kv"><dt>Formato</dt><dd>${esc(s.type)}${s.recorded?" · gravada":" · <b>não gravada</b>"}</dd>
